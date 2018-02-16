@@ -2,11 +2,13 @@ import org.apache.avro.Schema;
 import org.apache.avro.SchemaNormalization;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.nio.file.Path;
 import java.security.NoSuchAlgorithmException;
 
 public class ParsingForm {
@@ -33,15 +35,25 @@ public class ParsingForm {
    * @param args single member is schema filepath
    */
   public static void main( String[] args ) {
-    if (args.length != 1) {
+    if (args.length < 1 || args.length > 2) {
       throw new IllegalArgumentException("invalid arguments: must pass avsc filepath");
     }
     String filepath = args[0];
-    System.out.println(filepath);
+    String[] parts = filepath.split(File.separator);
+    String filename = parts[parts.length - 1];
 
     if (!filepath.endsWith(".avsc")) {
       throw new IllegalArgumentException("bad filepath given");
     }
+
+    String outFilepath;
+
+    if (args.length == 2) {
+      outFilepath = args[1] + File.separator + filename.substring(0, filename.length() - 5);
+    } else {
+      outFilepath = filepath.substring(0, filepath.length() - 5);
+    }
+    outFilepath += "_parsing-form.avsc";
 
     Schema schema = readSchemaFile(filepath);
     String parsingForm = SchemaNormalization.toParsingForm(schema);
@@ -61,10 +73,8 @@ public class ParsingForm {
     for (byte b : fp) {
       sb.append(String.format("%02X", b));
     }
+
     System.out.printf("Fingerprint is: %d (long) %s (hex)\n", fp64, sb.toString());
-
-    String outFilepath = filepath.substring(0, filepath.length() - 5) + "_parsing-form.avsc";
-
     System.out.printf("Writing parsing form to \"%s\"\n", outFilepath);
 
     try (PrintWriter out = new PrintWriter(outFilepath)) {
